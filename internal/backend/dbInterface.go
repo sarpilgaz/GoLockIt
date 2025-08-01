@@ -1,3 +1,10 @@
+/* TODO:
+-> remove account
+-> change master key
+-> change password
+-> generate password
+*/
+
 package backend
 
 import (
@@ -10,43 +17,109 @@ import (
 
 var db *sql.DB
 
-func openDb() {
+func OpenDb() error {
 	var err error
 	db, err = sql.Open("sqlite3", "passwordManagerDb.db")
 	if err != nil {
-		fmt.Println("no")
+		return fmt.Errorf("failed to open db connection: %w", err)
 	}
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		return fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+
+	return nil
 }
 
-func insertUser(username string, salt string, masterKeyHash string) (string, error) {
+func InsertUser(username string, salt []byte, masterKeyHash []byte) (string, error) {
 	//returns the username of the user created, or possible error
-	return "", nil
+
+	statement, err := db.Prepare("INSERT INTO users (username, salt, key_hash) VALUES (?, ?, ?)")
+
+	if err != nil {
+		fmt.Println("error preparing in insertUser")
+		return username, err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(username, salt, masterKeyHash)
+	if err != nil {
+		fmt.Println("error executing query in insertUser")
+		return username, err
+	}
+
+	return username, nil
 }
 
-func deleteUser(username string, uid uint8) (string, error) {
+func DeleteUser(username string, uid int64) (string, error) {
 	//returns the username of the deleted user, or possible error
-	return "", nil
+
+	statement, err := db.Prepare("DELETE FROM users WHERE id = ? AND username = ?")
+	if err != nil {
+		fmt.Println("error preparing in deleteUser")
+		return username, err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(uid, username)
+	if err != nil {
+		fmt.Println("error executing query in deleteUser")
+		return username, err
+	}
+
+	return username, nil
 }
 
-func fetchUser(username string) (userType.User, error) {
-	//returns the user on a successful login, error otherwise
+func FetchUser(username string) (userType.User, error) {
+	//returns the user information, error otherwise
+
 	var bogus userType.User
-	return bogus, nil
+	row := db.QueryRow("SELECT id, username, salt, key_hash FROM users WHERE username = ?", username)
+
+	var fetchedUser userType.User
+	err := row.Scan(&fetchedUser.Uid, &fetchedUser.Name, &fetchedUser.Salt, &fetchedUser.MasterKeyHash)
+	if err != nil {
+		fmt.Println("error executing query in fetchUser")
+		return bogus, err
+	}
+
+	return fetchedUser, nil
 }
 
-func fetchPassword(uid uint8, accountName string) (string, error) {
+func FetchPassword(uid int64, accountName string) ([]byte, error) {
 	//returns the hashed password corresponding to the account, or possible error
-	return "", nil
+	var bogus []byte
+
+	row := db.QueryRow("SELECT encrypted_data FROM entries WHERE user_id = ? AND name = ?", uid, accountName)
+
+	var fetchedPassword []byte
+	err := row.Scan(&fetchedPassword)
+	if err != nil {
+		fmt.Println("error executing query in fetchPassword")
+		return bogus, err
+	}
+	return fetchedPassword, nil
 }
 
-func insertPassword(uid uint8, accountName string, hashedPassword string) (string, error) {
+func InsertPassword(uid int64, accountName string, hashedPassword []byte) (string, error) {
 	//returns the name of the account for which a password was added, or a possible error
-	return "", nil
-}
 
-/* TODO:
--> remove account
--> change master key
--> change password
--> generate password
-*/
+	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data) VALUES (?, ?, ?)")
+	if err != nil {
+		fmt.Println("error preparing in insertPassword")
+		return accountName, err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(uid, accountName, hashedPassword)
+	if err != nil {
+		fmt.Println("error executing query in insertPassword")
+		return accountName, err
+	}
+
+	return accountName, nil
+}

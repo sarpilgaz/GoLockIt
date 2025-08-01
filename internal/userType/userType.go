@@ -1,8 +1,8 @@
 package userType
 
 type User struct {
-	uid           uint8
-	name          string
-	salt          string
-	masterKeyHash string
+	Uid           int64
+	Name          string
+	Salt          []byte
+	MasterKeyHash []byte
 }

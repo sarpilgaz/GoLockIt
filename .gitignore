@@ -1,5 +1,7 @@
 *.db
 *.exe
 *.test
+*.sum
 
 main
+notes.txt

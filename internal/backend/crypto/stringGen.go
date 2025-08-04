@@ -7,10 +7,19 @@ import (
 
 const (
 	// STDLEN is a standard length of  string to achive ~95 bits of entropy.
-	STDLEN = 16
+	STD_LEN = 16
 	// UUIDLEN is a length of  string to achive ~119 bits of entropy, closest
 	// to what can be losslessly converted to UUIDv4 (122 bits).
-	UUIDLEN = 20
+	UUID_LEN = 20
+
+	// MAXBUFLEN is the maximum length of a temporary buffer for random bytes.
+	MAX_BUF_LEN = 2048
+
+	// MINREGENBUFLEN is the minimum length of temporary buffer for random bytes
+	// to fill after the first rand.Read request didn't produce the full result.
+	// If the initial buffer is smaller, this value is ignored.
+	// Rationale: for performance, assume it's pointless to request fewer bytes from rand.Read.
+	MIN_REGEN_BUF_LEN = 16
 )
 
 // StdChars is a set of standard characters allowed in  string.
@@ -21,15 +30,6 @@ var StdChars = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 func GenerateRandomString(length int) string {
 	return newLenChars(length, StdChars)
 }
-
-// MAXBUFLEN is the maximum length of a temporary buffer for random bytes.
-const MAXBUFLEN = 2048
-
-// MINREGENBUFLEN is the minimum length of temporary buffer for random bytes
-// to fill after the first rand.Read request didn't produce the full result.
-// If the initial buffer is smaller, this value is ignored.
-// Rationale: for performance, assume it's pointless to request fewer bytes from rand.Read.
-const MINREGENBUFLEN = 16
 
 // estimatedBufLen returns the estimated number of random bytes to request
 // given that byte values greater than maxByte will be rejected.
@@ -52,8 +52,8 @@ func newLenCharsBytes(length int, chars []byte) []byte {
 	if buflen < length {
 		buflen = length
 	}
-	if buflen > MAXBUFLEN {
-		buflen = MAXBUFLEN
+	if buflen > MAX_BUF_LEN {
+		buflen = MAX_BUF_LEN
 	}
 	buf := make([]byte, buflen) // storage for random bytes
 	out := make([]byte, length) // storage for result
@@ -76,11 +76,11 @@ func newLenCharsBytes(length int, chars []byte) []byte {
 		}
 		// Adjust new requested length, but no smaller than MINREGENBUFLEN.
 		buflen = estimatedBufLen(length-i, maxrb)
-		if buflen < MINREGENBUFLEN && MINREGENBUFLEN < cap(buf) {
-			buflen = MINREGENBUFLEN
+		if buflen < MIN_REGEN_BUF_LEN && MIN_REGEN_BUF_LEN < cap(buf) {
+			buflen = MIN_REGEN_BUF_LEN
 		}
-		if buflen > MAXBUFLEN {
-			buflen = MAXBUFLEN
+		if buflen > MAX_BUF_LEN {
+			buflen = MAX_BUF_LEN
 		}
 	}
 }

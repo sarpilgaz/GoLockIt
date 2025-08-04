@@ -2,91 +2,60 @@ package main
 
 import (
 	"fmt"
-	"passwordManager/internal/backend/crypto"
+	"passwordManager/internal/backend"
 	"passwordManager/internal/backend/dbInterface"
 )
 
 func main() {
 	fmt.Println("Starting test...")
 
-	password := []byte(crypto.GenerateRandomString(16))
-	salt := []byte(crypto.GenerateRandomString(16))
+	var username = "sarp"
 
-	key, err := crypto.Genkey(password, salt)
+	//var myPassword = "idk man this seems strong to me"
+
+	//var myGitHubPassword = "its not like people want to go prying in my weak Github"
+
+	err := dbInterface.OpenDb()
 	if err != nil {
-		fmt.Println("error generating key in main")
+		fmt.Println("db conn failed")
 	}
 
-	keyHash, err := crypto.HashPassword(key)
+	usr, masterPassword, err := backend.AddUser(username, "")
 	if err != nil {
-		fmt.Println("error hashing key in main")
+		fmt.Println("acc creation failed")
 	}
 
-	// Open DB
-	err = dbInterface.OpenDb()
-	if err != nil {
-		fmt.Println("DB open error:", err)
-		return
+	fmt.Println("account created:", usr, string(masterPassword))
+
+	if backend.CheckUsername(username) {
+		fmt.Println("bingo!")
 	}
 
-	// Test user values
-	username := "testuser"
-
-	// Insert user
-	createdUsername, err := dbInterface.InsertUser(username, salt, keyHash)
+	userInfo, masterKey, err := backend.LogUserIn(username, masterPassword)
 	if err != nil {
-		fmt.Println("InsertUser error:", err)
-		return
-	}
-	fmt.Println("Inserted user:", createdUsername)
-
-	// Fetch user
-	user, err := dbInterface.FetchUser(username)
-	if err != nil {
-		fmt.Println("FetchUser error:", err)
-		return
-	}
-	fmt.Printf("Fetched user: %+v\n", user)
-
-	// Insert password
-	accountName := "github"
-
-	accPassword := []byte(crypto.GenerateRandomString(16))
-
-	encryptedPassword, err := crypto.EncryptPassword(accPassword, key)
-	if err != nil {
-		fmt.Println("error in encryption")
-		return
+		fmt.Println("auth failed")
 	}
 
-	_, err = dbInterface.InsertPassword(user.Uid, accountName, encryptedPassword)
-	if err != nil {
-		fmt.Println("InsertPassword error:", err)
-		return
-	}
-	fmt.Println("Inserted password for account:", accountName)
+	fmt.Println("auth done: ", userInfo.Name, string(masterKey))
 
-	// Fetch password
-	fetchedPwd, err := dbInterface.FetchPassword(user.Uid, accountName)
+	acc, accPassword, err := backend.AddPassword(userInfo, "Github", "", masterKey)
 	if err != nil {
-		fmt.Println("FetchPassword error:", err)
-		return
-	}
-	fmt.Println("Fetched password (encrypted):", string(fetchedPwd))
-
-	decryptedPassword, err := crypto.DecryptPassword(fetchedPwd, key)
-	if err != nil {
-		fmt.Println("decryption error:", err)
-		return
+		fmt.Println("password adding failed")
 	}
 
-	fmt.Println("hopefully the decrypted password:", string(decryptedPassword))
+	fmt.Println("account password added: ", acc, string(accPassword))
 
-	// Delete user
-	_, err = dbInterface.DeleteUser(username, user.Uid)
+	accPassRound2, err := backend.GetPassword(userInfo, "Github", masterKey)
 	if err != nil {
-		fmt.Println("DeleteUser error:", err)
-		return
+		fmt.Println("password retrival failed")
 	}
-	fmt.Println("Deleted user:", username)
+
+	fmt.Println("password retrieved: ", acc, accPassRound2)
+
+	accFinalTime, err := backend.RemoveUser(userInfo, masterPassword)
+	if err != nil {
+		fmt.Println("acc deletion failed")
+	}
+
+	fmt.Println("account deleted:", accFinalTime)
 }

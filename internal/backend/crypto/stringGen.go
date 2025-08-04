@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	// StdLen is a standard length of  string to achive ~95 bits of entropy.
-	StdLen = 16
-	// UUIDLen is a length of  string to achive ~119 bits of entropy, closest
+	// STDLEN is a standard length of  string to achive ~95 bits of entropy.
+	STDLEN = 16
+	// UUIDLEN is a length of  string to achive ~119 bits of entropy, closest
 	// to what can be losslessly converted to UUIDv4 (122 bits).
-	UUIDLen = 20
+	UUIDLEN = 20
 )
 
 // StdChars is a set of standard characters allowed in  string.
@@ -22,14 +22,14 @@ func GenerateRandomString(length int) string {
 	return newLenChars(length, StdChars)
 }
 
-// maxBufLen is the maximum length of a temporary buffer for random bytes.
-const maxBufLen = 2048
+// MAXBUFLEN is the maximum length of a temporary buffer for random bytes.
+const MAXBUFLEN = 2048
 
-// minRegenBufLen is the minimum length of temporary buffer for random bytes
+// MINREGENBUFLEN is the minimum length of temporary buffer for random bytes
 // to fill after the first rand.Read request didn't produce the full result.
 // If the initial buffer is smaller, this value is ignored.
 // Rationale: for performance, assume it's pointless to request fewer bytes from rand.Read.
-const minRegenBufLen = 16
+const MINREGENBUFLEN = 16
 
 // estimatedBufLen returns the estimated number of random bytes to request
 // given that byte values greater than maxByte will be rejected.
@@ -52,8 +52,8 @@ func newLenCharsBytes(length int, chars []byte) []byte {
 	if buflen < length {
 		buflen = length
 	}
-	if buflen > maxBufLen {
-		buflen = maxBufLen
+	if buflen > MAXBUFLEN {
+		buflen = MAXBUFLEN
 	}
 	buf := make([]byte, buflen) // storage for random bytes
 	out := make([]byte, length) // storage for result
@@ -74,13 +74,13 @@ func newLenCharsBytes(length int, chars []byte) []byte {
 				return out
 			}
 		}
-		// Adjust new requested length, but no smaller than minRegenBufLen.
+		// Adjust new requested length, but no smaller than MINREGENBUFLEN.
 		buflen = estimatedBufLen(length-i, maxrb)
-		if buflen < minRegenBufLen && minRegenBufLen < cap(buf) {
-			buflen = minRegenBufLen
+		if buflen < MINREGENBUFLEN && MINREGENBUFLEN < cap(buf) {
+			buflen = MINREGENBUFLEN
 		}
-		if buflen > maxBufLen {
-			buflen = maxBufLen
+		if buflen > MAXBUFLEN {
+			buflen = MAXBUFLEN
 		}
 	}
 }

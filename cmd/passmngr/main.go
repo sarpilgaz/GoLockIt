@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"passwordManager/internal/backend"
 	"passwordManager/internal/backend/crypto"
+	"passwordManager/internal/backend/dbInterface"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// Open DB
-	err = backend.OpenDb()
+	err = dbInterface.OpenDb()
 	if err != nil {
 		fmt.Println("DB open error:", err)
 		return
@@ -33,7 +33,7 @@ func main() {
 	username := "testuser"
 
 	// Insert user
-	createdUsername, err := backend.InsertUser(username, salt, keyHash)
+	createdUsername, err := dbInterface.InsertUser(username, salt, keyHash)
 	if err != nil {
 		fmt.Println("InsertUser error:", err)
 		return
@@ -41,7 +41,7 @@ func main() {
 	fmt.Println("Inserted user:", createdUsername)
 
 	// Fetch user
-	user, err := backend.FetchUser(username)
+	user, err := dbInterface.FetchUser(username)
 	if err != nil {
 		fmt.Println("FetchUser error:", err)
 		return
@@ -59,7 +59,7 @@ func main() {
 		return
 	}
 
-	_, err = backend.InsertPassword(user.Uid, accountName, encryptedPassword)
+	_, err = dbInterface.InsertPassword(user.Uid, accountName, encryptedPassword)
 	if err != nil {
 		fmt.Println("InsertPassword error:", err)
 		return
@@ -67,7 +67,7 @@ func main() {
 	fmt.Println("Inserted password for account:", accountName)
 
 	// Fetch password
-	fetchedPwd, err := backend.FetchPassword(user.Uid, accountName)
+	fetchedPwd, err := dbInterface.FetchPassword(user.Uid, accountName)
 	if err != nil {
 		fmt.Println("FetchPassword error:", err)
 		return
@@ -83,7 +83,7 @@ func main() {
 	fmt.Println("hopefully the decrypted password:", string(decryptedPassword))
 
 	// Delete user
-	_, err = backend.DeleteUser(username, user.Uid)
+	_, err = dbInterface.DeleteUser(username, user.Uid)
 	if err != nil {
 		fmt.Println("DeleteUser error:", err)
 		return

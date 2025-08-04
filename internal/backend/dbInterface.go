@@ -76,14 +76,13 @@ func DeleteUser(username string, uid int64) (string, error) {
 func FetchUser(username string) (userType.User, error) {
 	//returns the user information, error otherwise
 
-	var bogus userType.User
 	row := db.QueryRow("SELECT id, username, salt, key_hash FROM users WHERE username = ?", username)
 
 	var fetchedUser userType.User
 	err := row.Scan(&fetchedUser.Uid, &fetchedUser.Name, &fetchedUser.Salt, &fetchedUser.MasterKeyHash)
 	if err != nil {
 		fmt.Println("error executing query in fetchUser")
-		return bogus, err
+		return userType.User{}, err
 	}
 
 	return fetchedUser, nil
@@ -91,7 +90,6 @@ func FetchUser(username string) (userType.User, error) {
 
 func FetchPassword(uid int64, accountName string) ([]byte, error) {
 	//returns the hashed password corresponding to the account, or possible error
-	var bogus []byte
 
 	row := db.QueryRow("SELECT encrypted_data FROM entries WHERE user_id = ? AND name = ?", uid, accountName)
 
@@ -99,15 +97,15 @@ func FetchPassword(uid int64, accountName string) ([]byte, error) {
 	err := row.Scan(&fetchedPassword)
 	if err != nil {
 		fmt.Println("error executing query in fetchPassword")
-		return bogus, err
+		return []byte{}, err
 	}
 	return fetchedPassword, nil
 }
 
-func InsertPassword(uid int64, accountName string, hashedPassword []byte) (string, error) {
+func InsertPassword(uid int64, accountName string, hashedPassword []byte, nonce []byte) (string, error) {
 	//returns the name of the account for which a password was added, or a possible error
 
-	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data) VALUES (?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data, nonce) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		fmt.Println("error preparing in insertPassword")
 		return accountName, err
@@ -115,7 +113,7 @@ func InsertPassword(uid int64, accountName string, hashedPassword []byte) (strin
 
 	defer statement.Close()
 
-	_, err = statement.Exec(uid, accountName, hashedPassword)
+	_, err = statement.Exec(uid, accountName, hashedPassword, nonce)
 	if err != nil {
 		fmt.Println("error executing query in insertPassword")
 		return accountName, err

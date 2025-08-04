@@ -9,8 +9,8 @@ import (
 func main() {
 	fmt.Println("Starting test...")
 
-	password := []byte("not very secure password")
-	salt := []byte("random salt, probably good enough")
+	password := []byte(crypto.GenerateRandomString(16))
+	salt := []byte(crypto.GenerateRandomString(16))
 
 	key, err := crypto.Genkey(password, salt)
 	if err != nil {
@@ -51,7 +51,7 @@ func main() {
 	// Insert password
 	accountName := "github"
 
-	accPassword := []byte("this one is not really better")
+	accPassword := []byte(crypto.GenerateRandomString(16))
 
 	encryptedPassword, err := crypto.EncryptPassword(accPassword, key)
 	if err != nil {

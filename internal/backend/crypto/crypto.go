@@ -48,7 +48,7 @@ func Genkey(password []byte, salt []byte) ([]byte, error) {
 
 func HashPassword(key []byte) ([]byte, error) {
 	//use sha3 to hash a given securely generated key
-	//probably uneccessary but why not?
+	//pretty redundant, since we can store argon2id output in db,
 	if len(key) == 0 {
 		fmt.Println("password of length 0 passed to hash")
 		return []byte{}, errors.New("shake: input key is empty")

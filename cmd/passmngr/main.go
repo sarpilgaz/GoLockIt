@@ -3,13 +3,27 @@ package main
 import (
 	"fmt"
 	"passwordManager/internal/backend"
+	"passwordManager/internal/backend/crypto"
 )
 
 func main() {
 	fmt.Println("Starting test...")
 
+	password := []byte("not very secure password")
+	salt := []byte("random salt, probably good enough")
+
+	key, err := crypto.Genkey(password, salt)
+	if err != nil {
+		fmt.Println("error generating key in main")
+	}
+
+	keyHash, err := crypto.HashPassword(key)
+	if err != nil {
+		fmt.Println("error hashing key in main")
+	}
+
 	// Open DB
-	err := backend.OpenDb()
+	err = backend.OpenDb()
 	if err != nil {
 		fmt.Println("DB open error:", err)
 		return
@@ -17,11 +31,9 @@ func main() {
 
 	// Test user values
 	username := "testuser"
-	salt := []byte("random_salt")
-	masterKeyHash := []byte("hashed_master_key")
 
 	// Insert user
-	createdUsername, err := backend.InsertUser(username, salt, masterKeyHash)
+	createdUsername, err := backend.InsertUser(username, salt, keyHash)
 	if err != nil {
 		fmt.Println("InsertUser error:", err)
 		return
@@ -38,8 +50,16 @@ func main() {
 
 	// Insert password
 	accountName := "github"
-	passwordHash := []byte("super_secret_password_hash")
-	_, err = backend.InsertPassword(user.Uid, accountName, passwordHash)
+
+	accPassword := []byte("this one is not really better")
+
+	encryptedPassword, err := crypto.EncryptPassword(accPassword, key)
+	if err != nil {
+		fmt.Println("error in encryption")
+		return
+	}
+
+	_, err = backend.InsertPassword(user.Uid, accountName, encryptedPassword)
 	if err != nil {
 		fmt.Println("InsertPassword error:", err)
 		return
@@ -53,6 +73,14 @@ func main() {
 		return
 	}
 	fmt.Println("Fetched password (encrypted):", string(fetchedPwd))
+
+	decryptedPassword, err := crypto.DecryptPassword(fetchedPwd, key)
+	if err != nil {
+		fmt.Println("decryption error:", err)
+		return
+	}
+
+	fmt.Println("hopefully the decrypted password:", string(decryptedPassword))
 
 	// Delete user
 	_, err = backend.DeleteUser(username, user.Uid)

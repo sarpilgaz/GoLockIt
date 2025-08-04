@@ -102,10 +102,10 @@ func FetchPassword(uid int64, accountName string) ([]byte, error) {
 	return fetchedPassword, nil
 }
 
-func InsertPassword(uid int64, accountName string, hashedPassword []byte, nonce []byte) (string, error) {
+func InsertPassword(uid int64, accountName string, hashedPassword []byte) (string, error) {
 	//returns the name of the account for which a password was added, or a possible error
 
-	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data, nonce) VALUES (?, ?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data) VALUES (?, ?, ?)")
 	if err != nil {
 		fmt.Println("error preparing in insertPassword")
 		return accountName, err
@@ -113,7 +113,7 @@ func InsertPassword(uid int64, accountName string, hashedPassword []byte, nonce 
 
 	defer statement.Close()
 
-	_, err = statement.Exec(uid, accountName, hashedPassword, nonce)
+	_, err = statement.Exec(uid, accountName, hashedPassword)
 	if err != nil {
 		fmt.Println("error executing query in insertPassword")
 		return accountName, err

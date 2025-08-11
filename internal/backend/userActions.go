@@ -92,22 +92,22 @@ func LogUserIn(username string, masterPassword string) (userType.User, []byte, e
 
 //Authenticated Actions
 
-func GetPassword(user userType.User, accountName string, userKey []byte) (string, error) {
+func GetUserAccount(user userType.User, accountName string, userKey []byte) (string, string, error) {
 	//returns the password corresponding to the account, or possible error
-	encryptedPasswd, err := dbInterface.FetchPassword(user.Uid, accountName)
+	accUsername, encryptedPasswd, err := dbInterface.FetchUserAccount(user.Uid, accountName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	decryptedPasswd, err := crypto.DecryptPassword(encryptedPasswd, userKey)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return string(decryptedPasswd), nil
+	return accUsername, string(decryptedPasswd), nil
 }
 
-func AddPassword(user userType.User, accountName string, password string, masterKey []byte) (string, string, error) {
+func AddUserAccount(user userType.User, accountName string, accountUsername string, password string, masterKey []byte) (string, string, error) {
 	//empty password means generate a password
 	//returns the name of the account for which a password was added, the password added to the account, or a possible error
 	var passwdToUse []byte
@@ -122,7 +122,7 @@ func AddPassword(user userType.User, accountName string, password string, master
 		return "", "", nil
 	}
 
-	acc, err := dbInterface.InsertPassword(user.Uid, accountName, encryptedPasswd)
+	acc, err := dbInterface.InsertUserAccount(user.Uid, accountName, accountUsername, encryptedPasswd)
 	if err != nil {
 		return "", "", err
 	}

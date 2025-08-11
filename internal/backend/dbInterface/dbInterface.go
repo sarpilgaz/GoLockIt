@@ -120,44 +120,48 @@ func FetchUser(username string) (userType.User, error) {
 	return fetchedUser, nil
 }
 
-func FetchPassword(uid int64, accountName string) ([]byte, error) {
-	//returns the hashed password corresponding to the account, 2 possible errors
-	//If the given username is empty, or if no rows with the given params were found
+func FetchUserAccount(uid int64, accountName string) (string, []byte, error) {
+	// returns the account username and encrypted password corresponding to the account, 2 possible errors
+	// If the given account name is empty, or if no rows with the given params were found
 
 	if len(accountName) == 0 {
-		return []byte{}, errors.New("db: account name given to fetch password has length 0")
+		return "", []byte{}, errors.New("db: account name given to fetch password has length 0")
 	}
 
-	row := db.QueryRow("SELECT encrypted_data FROM entries WHERE user_id = ? AND name = ?", uid, accountName)
+	row := db.QueryRow("SELECT acc_username, encrypted_data FROM entries WHERE user_id = ? AND name = ?", uid, accountName)
 
-	var fetchedPassword []byte
-	err := row.Scan(&fetchedPassword)
+	var accUsername string
+	var encryptedData []byte
+	err := row.Scan(&accUsername, &encryptedData)
 	if err != nil {
-		fmt.Println("error executing query in fetchPassword")
-		return []byte{}, err
+		fmt.Println("error executing query in FetchUserAccount")
+		return "", []byte{}, err
 	}
-	return fetchedPassword, nil
+	return accUsername, encryptedData, nil
 }
 
-func InsertPassword(uid int64, accountName string, hashedPassword []byte) (string, error) {
-	//returns the name of the account for which a password was added, or 3 possible errors
-	//If the given username is empty, or if query prep fails, or if query execution fails
+func InsertUserAccount(uid int64, accountName string, accUsername string, encryptedData []byte) (string, error) {
+	// returns the name of the account for which a password was added, or 3 possible errors
+	// If the given account name or acc_username is empty, or if query prep fails, or if query execution fails
 
 	if len(accountName) == 0 {
-		return "", errors.New("db: username given to insert password has length 0")
+		return "", errors.New("db: account name given to insert account has length 0")
+	}
+	if len(accUsername) == 0 {
+		return "", errors.New("db: acc_username given to insert account has length 0")
 	}
 
-	statement, err := db.Prepare("INSERT INTO entries (user_id, name, encrypted_data) VALUES (?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO entries (user_id, name, acc_username, encrypted_data) VALUES (?, ?, ?, ?)")
 	if err != nil {
-		fmt.Println("error preparing in insertPassword")
+		fmt.Println("error preparing in InsertUserAccount")
 		return accountName, err
 	}
 
 	defer statement.Close()
 
-	_, err = statement.Exec(uid, accountName, hashedPassword)
+	_, err = statement.Exec(uid, accountName, accUsername, encryptedData)
 	if err != nil {
-		fmt.Println("error executing query in insertPassword")
+		fmt.Println("error executing query in InsertUserAccount")
 		return accountName, err
 	}
 

@@ -38,19 +38,19 @@ func main() {
 
 	fmt.Println("auth done: ", userInfo.Name, string(masterKey))
 
-	acc, accPassword, err := backend.AddPassword(userInfo, "Github", "", masterKey)
+	acc, accPassword, err := backend.AddUserAccount(userInfo, "Github", "sarpilgaz", "lalilulelo", masterKey)
 	if err != nil {
 		fmt.Println("password adding failed")
 	}
 
 	fmt.Println("account password added: ", acc, string(accPassword))
 
-	accPassRound2, err := backend.GetPassword(userInfo, "Github", masterKey)
+	accPassRound2, accUserRound2, err := backend.GetUserAccount(userInfo, "Github", masterKey)
 	if err != nil {
 		fmt.Println("password retrival failed")
 	}
 
-	fmt.Println("password retrieved: ", acc, accPassRound2)
+	fmt.Println("password retrieved: ", acc, accUserRound2, accPassRound2)
 
 	accFinalTime, err := backend.RemoveUser(userInfo, masterPassword)
 	if err != nil {

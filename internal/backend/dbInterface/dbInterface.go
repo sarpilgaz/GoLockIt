@@ -110,7 +110,7 @@ func FetchUser(username string) (userType.User, error) {
 
 	row := db.QueryRow("SELECT id, username, salt, key_hash FROM users WHERE username = ?", username)
 
-	var fetchedUser userType.User
+	var fetchedUser userType.User = userType.User{}
 	err := row.Scan(&fetchedUser.Uid, &fetchedUser.Name, &fetchedUser.Salt, &fetchedUser.MasterKeyHash)
 	if err != nil {
 		fmt.Println("error executing query in fetchUser")

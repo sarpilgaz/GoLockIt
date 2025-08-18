@@ -42,6 +42,10 @@ func checkCommandAndAuthStateMatch(cmd string, currAuthState *authState) uint8 {
 		if !currAuthState.isAuthenticated {
 			return 1
 		}
+	case "getaccounts":
+		if !currAuthState.isAuthenticated {
+			return 1
+		}
 	case "addaccount":
 		if !currAuthState.isAuthenticated {
 			return 1
@@ -114,6 +118,8 @@ func getUserAccount(accountName string) error {
 		return fmt.Errorf("invalid input")
 	}
 
+	accountName = strings.ToLower(accountName)
+
 	accountUsername, accountPassword, err := backend.GetUserAccount(currAuthState.user, accountName, currAuthState.masterKey)
 	if err != nil {
 		fmt.Println("Failed to retrieve account:", err)
@@ -124,13 +130,35 @@ func getUserAccount(accountName string) error {
 	return nil
 }
 
-func addUserAccount(accountName string, accountPassword string) error {
+func getUserAccountNames(user userType.User) error {
+	accs, err := backend.GetUserAccountNames(user)
+	if err != nil {
+		fmt.Println("Failed to retrieve account names:", err)
+	}
+
+	//pretty print the account names retrieved
+	if len(accs) == 0 {
+		fmt.Println("No accounts found for the user.")
+		return nil
+	}
+	fmt.Println("User accounts:")
+	for _, acc := range accs {
+		fmt.Println("-", acc)
+	}
+	fmt.Println("Use getaccount <account_name> to retrieve credentials")
+	return nil
+}
+
+func addUserAccount(accountName string, accountUsername string, accountPassword string) error {
 	if len(accountName) == 0 {
 		fmt.Println("Account name cannot be empty.")
 		return fmt.Errorf("invalid input")
 	}
 
-	_, _, err := backend.AddUserAccount(currAuthState.user, accountName, "", accountPassword, currAuthState.masterKey)
+	// Convert account name to lowercase for consistency
+	accountName = strings.ToLower(accountName)
+
+	_, _, err := backend.AddUserAccount(currAuthState.user, accountName, accountUsername, accountPassword, currAuthState.masterKey)
 	if err != nil {
 		fmt.Println("Failed to add user account:", err)
 		return fmt.Errorf("add user account failed")
@@ -194,12 +222,23 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 			return true
 		}
 
-	case "addaccount":
-		if len(args) < 3 {
-			fmt.Println("Usage: addaccount <account_name> <account password>")
+	case "getaccounts":
+		if len(args) > 1 {
+			fmt.Println("Usage: getaccounts")
 			return true
 		}
-		err := addUserAccount(args[1], args[2])
+		err := getUserAccountNames(currAuthState.user)
+		if err != nil {
+			fmt.Println("Get accounts failed:", err)
+			return true
+		}
+
+	case "addaccount":
+		if len(args) < 4 {
+			fmt.Println("Usage: addaccount <account_name (identification)> <account_username (credential)> <account password>")
+			return true
+		}
+		err := addUserAccount(args[1], args[2], args[3])
 		if err != nil {
 			fmt.Println("Add account failed:", err)
 			return true

@@ -18,11 +18,6 @@ import (
 const SALT_SIZE int = 16
 const GEN_PASSWORD_LENGTH int = 16
 
-// util
-func CheckUsername(username string) bool {
-	return dbInterface.CheckUsername(username)
-}
-
 func authenticateUser(username string, masterPassword string) (bool, userType.User, []byte) {
 	//returns true, the users info, and their generated master key if the given username and password pair is correct, false otherwise
 	// intended to be used as a util function inside the API, for example for first log in, or account deletion, etc.
@@ -105,6 +100,14 @@ func GetUserAccount(user userType.User, accountName string, userKey []byte) (str
 	}
 
 	return accUsername, string(decryptedPasswd), nil
+}
+
+func GetUserAccountNames(user userType.User) ([]string, error) {
+	accs, err := dbInterface.FetchUserAccounts(user.Uid)
+	if err != nil {
+		return nil, err
+	}
+	return accs, nil
 }
 
 func AddUserAccount(user userType.User, accountName string, accountUsername string, password string, masterKey []byte) (string, string, error) {

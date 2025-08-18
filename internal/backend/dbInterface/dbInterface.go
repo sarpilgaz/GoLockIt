@@ -36,19 +36,6 @@ func OpenDb() error {
 	return nil
 }
 
-func CheckUsername(username string) bool {
-	//returns true if the given username is in use, false otherwise
-	userInfo, err := FetchUser(username)
-	if err != nil {
-		return false
-	} else if userInfo.Name == username {
-		return true
-	} else {
-		//this case should not be possible, burn it with fire
-		return true
-	}
-}
-
 func InsertUser(username string, salt []byte, masterKeyHash []byte) (string, error) {
 	//returns the username of the user created, or 2 possible errors
 	//If the given username of the user is empty, or if the query prep fails
@@ -138,6 +125,30 @@ func FetchUserAccount(uid int64, accountName string) (string, []byte, error) {
 		return "", []byte{}, err
 	}
 	return accUsername, encryptedData, nil
+}
+
+func FetchUserAccounts(uid int64) ([]string, error) {
+	//function to fetch the names the accounts of a user stored. Not usernames of accounts, the names of the accounts
+	rows, err := db.Query("SELECT name FROM entries WHERE user_id = ?", uid)
+	accNames := make([]string, 0)
+	if err != nil {
+		return nil, fmt.Errorf("error executing query in FetchUserAccounts: %w", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var accName string
+		if err := rows.Scan(&accName); err != nil {
+			return nil, fmt.Errorf("error scanning row in FetchUserAccounts: %w", err)
+		}
+		accNames = append(accNames, accName)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows in FetchUserAccounts: %w", err)
+	}
+
+	return accNames, nil
 }
 
 func InsertUserAccount(uid int64, accountName string, accUsername string, encryptedData []byte) (string, error) {

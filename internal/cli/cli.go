@@ -50,7 +50,7 @@ func checkCommandAndAuthStateMatch(cmd string, currAuthState *authState) uint8 {
 		if !currAuthState.isAuthenticated {
 			return 1
 		}
-	case "removeaccount":
+	case "removeuser":
 		if !currAuthState.isAuthenticated {
 			return 1
 		}
@@ -66,14 +66,12 @@ func login(username string, password string, currAuthState *authState) error {
 
 	// input validation
 	if len(username) == 0 || len(password) == 0 {
-		fmt.Println("Username and password cannot be empty.")
-		return fmt.Errorf("invalid input")
+		return fmt.Errorf("username and password cannot be empty")
 	}
 
 	account, masterKey, err := backend.LogUserIn(username, password)
 	if err != nil {
-		fmt.Println("Login failed:", err)
-		return fmt.Errorf("login failed")
+		return err
 	}
 
 	currAuthState.isAuthenticated = true
@@ -85,8 +83,7 @@ func login(username string, password string, currAuthState *authState) error {
 
 func logout(currAuthState *authState) error {
 	if !currAuthState.isAuthenticated {
-		fmt.Println("You are not logged in.")
-		return fmt.Errorf("logout failed")
+		return fmt.Errorf("you are not logged in")
 	}
 
 	currAuthState.isAuthenticated = false
@@ -99,13 +96,11 @@ func logout(currAuthState *authState) error {
 func addUser(username string, masterPassword string) error {
 
 	if len(username) == 0 || len(masterPassword) == 0 {
-		fmt.Println("Username and password cannot be empty.")
-		return fmt.Errorf("invalid input")
+		return fmt.Errorf("username and password cannot be empty")
 	}
 	_, _, err := backend.AddUser(username, masterPassword)
 	if err != nil {
-		fmt.Println("Failed to add user:", err)
-		return fmt.Errorf("add user failed")
+		return err
 	}
 	fmt.Println("User added successfully.")
 	return nil
@@ -114,15 +109,13 @@ func addUser(username string, masterPassword string) error {
 func getUserAccount(accountName string) error {
 
 	if len(accountName) == 0 {
-		fmt.Println("Account name cannot be empty.")
-		return fmt.Errorf("invalid input")
+		return fmt.Errorf("account name cannot be empty")
 	}
 
 	accountName = strings.ToLower(accountName)
 
 	accountUsername, accountPassword, err := backend.GetUserAccount(currAuthState.user, accountName, currAuthState.masterKey)
 	if err != nil {
-		fmt.Println("Failed to retrieve account:", err)
 		return err
 	}
 
@@ -133,7 +126,7 @@ func getUserAccount(accountName string) error {
 func getUserAccountNames(user userType.User) error {
 	accs, err := backend.GetUserAccountNames(user)
 	if err != nil {
-		fmt.Println("Failed to retrieve account names:", err)
+		return err
 	}
 
 	//pretty print the account names retrieved
@@ -151,8 +144,7 @@ func getUserAccountNames(user userType.User) error {
 
 func addUserAccount(accountName string, accountUsername string, accountPassword string) error {
 	if len(accountName) == 0 {
-		fmt.Println("Account name cannot be empty.")
-		return fmt.Errorf("invalid input")
+		return fmt.Errorf("account name cannot be empty")
 	}
 
 	// Convert account name to lowercase for consistency
@@ -160,23 +152,20 @@ func addUserAccount(accountName string, accountUsername string, accountPassword 
 
 	_, _, err := backend.AddUserAccount(currAuthState.user, accountName, accountUsername, accountPassword, currAuthState.masterKey)
 	if err != nil {
-		fmt.Println("Failed to add user account:", err)
-		return fmt.Errorf("add user account failed")
+		return err
 	}
 	fmt.Println("User account added successfully.")
 	return nil
 }
 
-func removeUserAccount(masterPassword string) error {
+func removeUser(masterPassword string) error {
 	if len(masterPassword) == 0 {
-		fmt.Println("Master password cannot be empty.")
-		return fmt.Errorf("invalid input")
+		return fmt.Errorf("master password cannot be empty")
 	}
 
 	account, err := backend.RemoveUser(currAuthState.user, masterPassword)
 	if err != nil {
-		fmt.Println("Failed to remove user account:", err)
-		return fmt.Errorf("remove user account failed")
+		return err
 	}
 	fmt.Printf("User account removed successfully. Deleted account: %s\n", account)
 	return nil
@@ -193,12 +182,13 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		err := login(args[1], args[2], currAuthState)
 		if err != nil {
 			fmt.Println("Login failed:", err)
-			return true
 		}
 
 	case "logout":
-		logout(currAuthState)
-		return true
+		err := logout(currAuthState)
+		if err != nil {
+			fmt.Println("logout failed: ", err)
+		}
 
 	case "adduser":
 		if len(args) < 3 {
@@ -207,8 +197,7 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		}
 		err := addUser(args[1], args[2])
 		if err != nil {
-			fmt.Println("Add user failed:", err)
-			return true
+			fmt.Println("adduser failed:", err)
 		}
 
 	case "getaccount":
@@ -218,8 +207,7 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		}
 		err := getUserAccount(args[1])
 		if err != nil {
-			fmt.Println("Get account failed:", err)
-			return true
+			fmt.Println("getaccount failed:", err)
 		}
 
 	case "getaccounts":
@@ -229,8 +217,7 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		}
 		err := getUserAccountNames(currAuthState.user)
 		if err != nil {
-			fmt.Println("Get accounts failed:", err)
-			return true
+			fmt.Println("getaccounts failed:", err)
 		}
 
 	case "addaccount":
@@ -240,19 +227,17 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		}
 		err := addUserAccount(args[1], args[2], args[3])
 		if err != nil {
-			fmt.Println("Add account failed:", err)
-			return true
+			fmt.Println("addaccount:", err)
 		}
 
-	case "removeaccount":
+	case "removeuser":
 		if len(args) < 2 {
-			fmt.Println("Usage: removeaccount <master_password>")
+			fmt.Println("Usage: removeuser <master_password>")
 			return true
 		}
-		err := removeUserAccount(args[1])
+		err := removeUser(args[1])
 		if err != nil {
-			fmt.Println("Remove account failed:", err)
-			return true
+			fmt.Println("removeuser failed:", err)
 		}
 
 	case "exit", "quit":

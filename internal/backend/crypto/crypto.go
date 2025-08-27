@@ -27,18 +27,22 @@ const (
 	MIN_SALT_LEN = 16
 )
 
+var (
+	Err0LengthPassword = errors.New("0 length password given")
+	ErrInvalidSalt     = errors.New("given salt is too short, need at least 16 bytes")
+	Err0LengthKey      = errors.New("shake: input key is empty")
+)
+
 func Genkey(password []byte, salt []byte) ([]byte, error) {
 	//use argon2id to generate a secure 32 byte key from the password given
-	var err error
 
 	//this non-zero should be enforced by the cli, but why not also here
 	if len(password) == 0 {
-		fmt.Println("empty password given to keygen")
-		return []byte{}, err
+		return []byte{}, Err0LengthPassword
 	}
 
 	if len(salt) < MIN_SALT_LEN {
-		return nil, fmt.Errorf("derive key: salt length %d too short, need ≥%d bytes", len(salt), MIN_SALT_LEN)
+		return nil, ErrInvalidSalt
 	}
 
 	key := argon2.IDKey(password, salt, ARGON_TIME, ARGON_MEM, ARGON_THREADS, KEY_LEN)
@@ -50,8 +54,7 @@ func HashPassword(key []byte) ([]byte, error) {
 	//use sha3 to hash a given securely generated key
 	//pretty redundant, since we can store argon2id output in db,
 	if len(key) == 0 {
-		fmt.Println("password of length 0 passed to hash")
-		return []byte{}, errors.New("shake: input key is empty")
+		return []byte{}, Err0LengthKey
 	}
 
 	digest := make([]byte, 32)
@@ -67,7 +70,7 @@ func EncryptPassword(password []byte, key []byte) ([]byte, error) {
 	//use chacha20 to create a nonce, then encrypt the password with the securely created key
 	if len(password) == 0 {
 		fmt.Println("password of length 0 passed to hash")
-		return []byte{}, errors.New("encrypt: password is empty")
+		return []byte{}, Err0LengthPassword
 	}
 
 	aead, err := chacha20poly1305.NewX(key)
@@ -100,8 +103,7 @@ func DecryptPassword(encryptedPassword []byte, key []byte) ([]byte, error) {
 
 	plainPassword, err := aead.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		fmt.Println("ciphertext has been tampered with")
-		return []byte{}, nil
+		return []byte{}, err
 	}
 
 	return plainPassword, nil

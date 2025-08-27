@@ -2,6 +2,7 @@
 *.exe
 *.test
 *.sum
+*.log
 
 main
 notes.txt

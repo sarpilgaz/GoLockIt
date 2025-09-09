@@ -54,7 +54,7 @@ func checkCommandAndAuthStateMatch(cmd string, currAuthState *authState) uint8 {
 		if !currAuthState.isAuthenticated {
 			return 1
 		}
-	case "exit", "quit":
+	case "exit", "quit", "help":
 		return 0
 	default:
 		return 0 // command can be used, should fail in processCommand if command is not recognized
@@ -243,11 +243,29 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 	case "exit", "quit":
 		fmt.Println("Exiting...")
 		return false
+
+	case "help":
+		if currAuthState.isAuthenticated {
+			fmt.Println("Available commands:\n" +
+				"  logout\n" +
+				"  getaccount <account_name>\n" +
+				"  getaccounts\n" +
+				"  addaccount <account_name> <account_username> <account_password>\n" +
+				"  removeuser <master_password>\n" +
+				"  exit | quit\n" +
+				"  help")
+		} else {
+			fmt.Println("Available commands:\n" +
+				"  login <username> <password>\n" +
+				"  adduser <username> <master_password>\n" +
+				"  exit | quit\n" +
+				"  help")
+		}
 	default:
 		if currAuthState.isAuthenticated {
-			fmt.Println("Unknown command. Available: logout, exit")
+			fmt.Println("Unknown command. Type \"help\" for a list of available commands")
 		} else {
-			fmt.Println("Unknown command. Available: login, exit")
+			fmt.Println("Unknown command. Type \"help\" for a list of available commands")
 		}
 	}
 	return true

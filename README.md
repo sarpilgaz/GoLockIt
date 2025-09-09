@@ -1,7 +1,8 @@
-Felt cute might document later idk
+# Password Manager
 
-### Design Choice:
+A minimal, stateless command-line password manager written in Go. It securely stores user credentials using strong cryptography and a local SQLite database. Authentication and input validation are handled at the CLI, DB, and crypto layers for security and simplicity.
 
-- The API userActions is stateless, it has no notion of how senseful its arguments are in relation to the authentication state
-- most critical input validation points are enforced on the DB and crypto layer,
--  But the primary driver of the authentication state, user Information, input validation and such should be handled by the CLI layer
+- CLI-based user interaction
+- Stateless API for user actions
+- Secure password storage and encryption
+- Local database (SQLite)

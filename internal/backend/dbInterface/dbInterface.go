@@ -98,17 +98,36 @@ func DeleteUser(username string, uid int64) (string, error) {
 
 	statement, err := db.Prepare("DELETE FROM users WHERE id = ? AND username = ?")
 	if err != nil {
-		return username, err
+		return "", err
 	}
 
 	defer statement.Close()
 
 	_, err = statement.Exec(uid, username)
 	if err != nil {
-		return username, err
+		return "", err
 	}
 
 	return username, nil
+}
+
+func DeleteUserAccount(accountName string, uid int64) (string, error) {
+	if len(accountName) == 0 {
+		return "", Err0LengthUserAccUsername
+	}
+	statement, err := db.Prepare("DELETE FROM entries WHERE user_id = ? AND name = ?")
+	if err != nil {
+		return "", err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(uid, accountName)
+	if err != nil {
+		return "", err
+	}
+
+	return accountName, nil
 }
 
 func FetchUser(username string) (userType.User, error) {

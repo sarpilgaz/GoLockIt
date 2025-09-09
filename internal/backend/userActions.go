@@ -220,3 +220,20 @@ func RemoveUser(user userType.User, masterPassword string) (string, error) {
 
 	return acc, nil
 }
+
+func RemoveUserAccount(accountName string, user userType.User) (string, error) {
+	acc, err := dbInterface.DeleteUserAccount(accountName, user.Uid)
+	if err != nil {
+		switch err {
+		case dbInterface.Err0LengthUserAccUsername:
+			logger.Error("Remove user acc failed:", "error", err)
+			return "", err
+		default:
+			logger.Error("db error:", "error", err)
+			return "", fmt.Errorf("internal error, try again later")
+		}
+	}
+
+	return acc, nil
+
+}

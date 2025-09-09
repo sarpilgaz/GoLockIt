@@ -30,13 +30,13 @@ func checkCommandAndAuthStateMatch(cmd string, currAuthState *authState) uint8 {
 		if currAuthState.isAuthenticated {
 			return 2
 		}
-	case "logout":
-		if !currAuthState.isAuthenticated {
-			return 1
-		}
 	case "adduser":
 		if currAuthState.isAuthenticated {
 			return 2
+		}
+	case "logout":
+		if !currAuthState.isAuthenticated {
+			return 1
 		}
 	case "getaccount":
 		if !currAuthState.isAuthenticated {
@@ -51,6 +51,10 @@ func checkCommandAndAuthStateMatch(cmd string, currAuthState *authState) uint8 {
 			return 1
 		}
 	case "removeuser":
+		if !currAuthState.isAuthenticated {
+			return 1
+		}
+	case "removeaccount":
 		if !currAuthState.isAuthenticated {
 			return 1
 		}
@@ -171,6 +175,19 @@ func removeUser(masterPassword string) error {
 	return nil
 }
 
+func removeUserAccount(accountName string) error {
+	if len(accountName) == 0 {
+		return fmt.Errorf("account username cannot be empty")
+	}
+
+	account, err := backend.RemoveUserAccount(accountName, currAuthState.user)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("User account removed successfully. Deleted account: %s\n", account)
+	return nil
+}
+
 func processCommand(cmd string, args []string, currAuthState *authState) bool {
 	// true for continue CLI, false for exit
 	switch cmd {
@@ -239,6 +256,15 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 		if err != nil {
 			fmt.Println("removeuser failed:", err)
 		}
+	case "removeaccount":
+		if len(args) < 2 {
+			fmt.Println("Usage: removeaccount <account_name>")
+			return true
+		}
+		err := removeUserAccount(args[1])
+		if err != nil {
+			fmt.Println("removeaccount failed:", err)
+		}
 
 	case "exit", "quit":
 		fmt.Println("Exiting...")
@@ -252,6 +278,7 @@ func processCommand(cmd string, args []string, currAuthState *authState) bool {
 				"  getaccounts\n" +
 				"  addaccount <account_name> <account_username> <account_password>\n" +
 				"  removeuser <master_password>\n" +
+				"  removeaccount <account_name>\n" +
 				"  exit | quit\n" +
 				"  help")
 		} else {
